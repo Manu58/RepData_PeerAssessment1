@@ -39,15 +39,26 @@ Except for Tuesday all days are affected in an oddly regular way
 
 We should first understand the behavior of the step density over time.
 
-We first calculate the average daily steps, skipping the missing data for now.
+We first calculate the average daily steps, skipping the missing data for now. 
+
+First we check what the minimum number of observations per day is
 
 ```{r}
 setkey(rawdat, date) # speeds up selection
+min(rawdat[, .(sm=sum(!is.na(steps))), by=key(rawdat)][, sm])
+```
+
+Since there are days without any observation, we filter the table on missing data before summing.
+
+Preventing too much distortion.
+
+```{r}
+
 stepsperday <- rawdat[complete.cases(rawdat), .(dsteps = sum(steps)), by = key(rawdat)]
-mean(stepsperday$dsteps) # the bare value
-median(stepsperday$dsteps)
-dmean <- round(mean(stepsperday$dsteps), -2) # appropriately rounded off
-dmedian <- round(median(stepsperday$dsteps), -2)
+mean(stepsperday[, dsteps]) # the bare value
+median(stepsperday[, dsteps])
+dmean <- round(mean(stepsperday[, dsteps]), -2) # appropriately rounded off
+dmedian <- round(median(stepsperday[, dsteps]), -2)
 stderr <- sd(stepsperday$dsteps) / sqrt(length(stepsperday))
 ```
 
@@ -152,37 +163,49 @@ wkndmean<- subset(rawdat,!is.na(steps) & day == 'Weekend')[,
 Now we can set the missing values in place:
 
 ```{r}
-rawdat[(is.na(steps) & day == 'Weekend'), steps := wkndmean[interval == interval, mnsteps]]
-rawdat[(is.na(steps) & day != 'Weekend'), steps := weekmean[interval == interval, mnsteps]]
+newdat<-rawdat[,.(steps, date, interval, minutes, day)]
+setkey(newdat, interval)
+newdat[(is.na(steps) & day == 'Weekend'), steps := wkndmean[interval == interval, mnsteps]]
+newdat[(is.na(steps) & day != 'Weekend'), steps := weekmean[interval == interval, mnsteps]]
 ```
 
 a little check
 
 ```{r}
-sum(rawdat[,is.na(steps)])
+sum(newdat[,is.na(steps)])
 ```
 
-That looks good
+That looks good the missing data are gone
 
 ```{r}
-setkey(rawdat, date) # speeds up selection
-stepsperday <- rawdat[, .(dsteps = sum(steps)), by = key(rawdat)]
-mean(stepsperday$dsteps)
-median(stepsperday$dsteps)
+setkey(newdat, date) # speeds up selection
+new_stepsperday <- newdat[, .(dsteps = sum(steps)), by = key(newdat)]
+mean(new_stepsperday[, dsteps])
+median(new_stepsperday[, dsteps])
 ```
 
-The mean has more or less stayed the same, but the median has decreased from its value without missing value insertion.
+The mean has more or less stayed the same, the median though has decreased from the value it had before missing value insertion.
 
-The reason is that most of the missing values were during the night where the activity is low. Using a mean 
+The reason is that most of the missing values were during the night where the activity is low. Using a mean approximation 
 
-approximation for the missing values affects especially the median, this could be improved upon using 
+for the missing values affects especially the median, this could be improved upon using bootstrapping. 
 
-bootstrapping. 
+Finally we can compare the daily steps histograms before and after filling in the missing data:
 
-Finally we can inspect the daily density curves after filling in the missing data:
 
 ```{r, fig.align = 'center'}
-g <- ggplot(rawdat, aes(minutes, steps))
+stepsperday<-rbind(stepsperday[,missing:='not filled'],new_stepsperday[,missing:='filled'])
+g<- ggplot(stepsperday, aes(x=dsteps, colour=missing, fill=missing))
+g <- g + geom_histogram(position="dodge", binwidth=2000,alpha = 0.3)
+g + xlab("Steps per day") + ggtitle('Steps per day before and after interpolation')
+```
+The most interesting feature is the higher peak around the mean, but that is what you get when you put in what you got.
+
+The average step density over a day, differentiating between workdays and weekends, remains as expected unaltered
+
+
+```{r, fig.align = 'center'}
+g <- ggplot(newdat, aes(minutes, steps))
 g <- g + stat_summary(fun.y = mean, geom = "line") 
 g <- g + ggtitle("The step density during a day averaged over two months\n after interpolation")
 g <- g + facet_grid(day ~ .)

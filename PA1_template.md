@@ -79,13 +79,28 @@ Except for Tuesday all days are affected in an oddly regular way
 
 We should first understand the behavior of the step density over time.
 
-We first calculate the average daily steps, skipping the missing data for now.
+We first calculate the average daily steps, skipping the missing data for now. 
+
+First we check what the minimum number of observations per day is
 
 
 ```r
 setkey(rawdat, date) # speeds up selection
+min(rawdat[, .(sm=sum(!is.na(steps))), by=key(rawdat)][, sm])
+```
+
+```
+## [1] 0
+```
+
+Since there are days without any observation, we filter the table on missing data before summing.
+
+Preventing too much distortion.
+
+
+```r
 stepsperday <- rawdat[complete.cases(rawdat), .(dsteps = sum(steps)), by = key(rawdat)]
-mean(stepsperday$dsteps) # the bare value
+mean(stepsperday[, dsteps]) # the bare value
 ```
 
 ```
@@ -93,7 +108,7 @@ mean(stepsperday$dsteps) # the bare value
 ```
 
 ```r
-median(stepsperday$dsteps)
+median(stepsperday[, dsteps])
 ```
 
 ```
@@ -101,8 +116,8 @@ median(stepsperday$dsteps)
 ```
 
 ```r
-dmean <- round(mean(stepsperday$dsteps), -2) # appropriately rounded off
-dmedian <- round(median(stepsperday$dsteps), -2)
+dmean <- round(mean(stepsperday[, dsteps]), -2) # appropriately rounded off
+dmedian <- round(median(stepsperday[, dsteps]), -2)
 stderr <- sd(stepsperday$dsteps) / sqrt(length(stepsperday))
 ```
 
@@ -126,7 +141,7 @@ arrows(8000, 3*max(h$counts) / 4, dmean, 3 * max(h$counts) / 4)
 text(6000, 3*max(h$counts) / 4 + 0.5, "Mean daily steps")
 ```
 
-<img src="PA1_template_files/figure-html/unnamed-chunk-5-1.png" title="" alt="" style="display: block; margin: auto;" />
+<img src="PA1_template_files/figure-html/unnamed-chunk-6-1.png" title="" alt="" style="display: block; margin: auto;" />
 
 The histogram reveals the distribution is far from symmetric, although there are two outliers that have a dazzling number of steps close to *zero*!
 
@@ -151,7 +166,7 @@ g <- g + scale_x_continuous(breaks = seq(0, 1440, 360), labels = labtime)
 g + scale_y_continuous(labels = labdensity)
 ```
 
-<img src="PA1_template_files/figure-html/unnamed-chunk-6-1.png" title="" alt="" style="display: block; margin: auto;" />
+<img src="PA1_template_files/figure-html/unnamed-chunk-7-1.png" title="" alt="" style="display: block; margin: auto;" />
 
 As was to be expected the bearer did sleep during the night. There is an interesting peak in the morning 
 
@@ -209,7 +224,7 @@ g <- g + scale_x_continuous(breaks = seq(0, 1440, 360), labels = labtime)
 g + scale_y_continuous(labels = labdensity)
 ```
 
-<img src="PA1_template_files/figure-html/unnamed-chunk-9-1.png" title="" alt="" style="display: block; margin: auto;" />
+<img src="PA1_template_files/figure-html/unnamed-chunk-10-1.png" title="" alt="" style="display: block; margin: auto;" />
 
 
 There is a clear difference in the morning, where the step density starts to grow a couple of hours 
@@ -239,7 +254,9 @@ Now we can set the missing values in place:
 
 
 ```r
-rawdat[(is.na(steps) & day == 'Weekend'), steps := wkndmean[interval == interval, mnsteps]]
+newdat<-rawdat[,.(steps, date, interval, minutes, day)]
+setkey(newdat, interval)
+newdat[(is.na(steps) & day == 'Weekend'), steps := wkndmean[interval == interval, mnsteps]]
 ```
 
 ```
@@ -258,7 +275,7 @@ rawdat[(is.na(steps) & day == 'Weekend'), steps := wkndmean[interval == interval
 ```
 
 ```r
-rawdat[(is.na(steps) & day != 'Weekend'), steps := weekmean[interval == interval, mnsteps]]
+newdat[(is.na(steps) & day != 'Weekend'), steps := weekmean[interval == interval, mnsteps]]
 ```
 
 ```
@@ -280,20 +297,20 @@ a little check
 
 
 ```r
-sum(rawdat[,is.na(steps)])
+sum(newdat[,is.na(steps)])
 ```
 
 ```
 ## [1] 0
 ```
 
-That looks good
+That looks good the missing data are gone
 
 
 ```r
-setkey(rawdat, date) # speeds up selection
-stepsperday <- rawdat[, .(dsteps = sum(steps)), by = key(rawdat)]
-mean(stepsperday$dsteps)
+setkey(newdat, date) # speeds up selection
+new_stepsperday <- newdat[, .(dsteps = sum(steps)), by = key(newdat)]
+mean(new_stepsperday[, dsteps])
 ```
 
 ```
@@ -301,26 +318,39 @@ mean(stepsperday$dsteps)
 ```
 
 ```r
-median(stepsperday$dsteps)
+median(new_stepsperday[, dsteps])
 ```
 
 ```
 ## [1] 10600
 ```
 
-The mean has more or less stayed the same, but the median has decreased from its value without missing value insertion.
+The mean has more or less stayed the same, the median though has decreased from the value it had before missing value insertion.
 
-The reason is that most of the missing values were during the night where the activity is low. Using a mean 
+The reason is that most of the missing values were during the night where the activity is low. Using a mean approximation 
 
-approximation for the missing values affects especially the median, this could be improved upon using 
+for the missing values affects especially the median, this could be improved upon using bootstrapping. 
 
-bootstrapping. 
+Finally we can compare the daily steps histograms before and after filling in the missing data:
 
-Finally we can inspect the daily density curves after filling in the missing data:
 
 
 ```r
-g <- ggplot(rawdat, aes(minutes, steps))
+stepsperday<-rbind(stepsperday[,missing:='not filled'],new_stepsperday[,missing:='filled'])
+g<- ggplot(stepsperday, aes(x=dsteps, colour=missing, fill=missing))
+g <- g + geom_histogram(position="dodge", binwidth=2000,alpha = 0.3)
+g + xlab("Steps per day") + ggtitle('Steps per day before and after interpolation')
+```
+
+<img src="PA1_template_files/figure-html/unnamed-chunk-15-1.png" title="" alt="" style="display: block; margin: auto;" />
+The most interesting feature is the higher peak around the mean, but that is what you get when you put in what you got.
+
+The average step density over a day, differentiating between workdays and weekends, remains as expected unaltered
+
+
+
+```r
+g <- ggplot(newdat, aes(minutes, steps))
 g <- g + stat_summary(fun.y = mean, geom = "line") 
 g <- g + ggtitle("The step density during a day averaged over two months\n after interpolation")
 g <- g + facet_grid(day ~ .)
@@ -329,6 +359,6 @@ g <- g + scale_x_continuous(breaks = seq(0, 1440, 360), labels = labtime)
 g + scale_y_continuous(labels = labdensity)
 ```
 
-<img src="PA1_template_files/figure-html/unnamed-chunk-14-1.png" title="" alt="" style="display: block; margin: auto;" />
+<img src="PA1_template_files/figure-html/unnamed-chunk-16-1.png" title="" alt="" style="display: block; margin: auto;" />
 
 
