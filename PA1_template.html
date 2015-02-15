@@ -112,13 +112,13 @@ rawdat[,.(missing = sum(is.na(steps))), by=weekday(date)]</code></pre>
 ## 7:    Sunday     288</code></pre>
 <p>Except for Tuesday all days are affected in an oddly regular way</p>
 <p>We should first understand the behavior of the step density over time.</p>
-<p>We first calculate the average daily steps, skipping the missing data for now.</p>
+<p>Hereto we first calculate the average daily steps, skipping the missing data for now.</p>
 <p>First we check what the minimum number of observations per day is</p>
 <pre class="r"><code>setkey(rawdat, date) # speeds up selection
 min(rawdat[, .(sm=sum(!is.na(steps))), by=key(rawdat)][, sm])</code></pre>
 <pre><code>## [1] 0</code></pre>
 <p>Since there are days without any observation, we filter the table on missing data before summing.</p>
-<p>Preventing too much distortion.</p>
+<p>Preventing too much distortion by days that have no data at all.</p>
 <pre class="r"><code>stepsperday &lt;- rawdat[complete.cases(rawdat), .(dsteps = sum(steps)), by = key(rawdat)]
 mean(stepsperday[, dsteps]) # the bare value</code></pre>
 <pre><code>## [1] 10766.19</code></pre>
@@ -144,7 +144,7 @@ text(6000, 3*max(h$counts) / 4 + 0.5, &quot;Mean daily steps&quot;)</code></pre>
 </div>
 <div id="what-is-the-average-daily-activity-pattern" class="section level2">
 <h2>What is the average daily activity pattern?</h2>
-<p>To be able to correct for the missing data we first check the average step density over the day, since it seems likely to vary substantially.</p>
+<p>To be able to correct for the missing data we now check the average step density over the day, since it seems likely to vary substantially.</p>
 <p>We will use the ggplot2 package.</p>
 <pre class="r"><code>library(&quot;ggplot2&quot;)
 g &lt;- ggplot(subset(rawdat,!is.na(steps)), aes(minutes, steps))

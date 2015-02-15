@@ -79,7 +79,7 @@ Except for Tuesday all days are affected in an oddly regular way
 
 We should first understand the behavior of the step density over time.
 
-We first calculate the average daily steps, skipping the missing data for now. 
+Hereto we first calculate the average daily steps, skipping the missing data for now. 
 
 First we check what the minimum number of observations per day is
 
@@ -95,7 +95,7 @@ min(rawdat[, .(sm=sum(!is.na(steps))), by=key(rawdat)][, sm])
 
 Since there are days without any observation, we filter the table on missing data before summing.
 
-Preventing too much distortion.
+Preventing too much distortion by days that have no data at all.
 
 
 ```r
@@ -149,7 +149,7 @@ The pedometer was hardly in use those days.
 
 ## What is the average daily activity pattern?
 
-To be able to correct for the missing data we first check the average step density over the day, since it seems likely to vary substantially.
+To be able to correct for the missing data we now check the average step density over the day, since it seems likely to vary substantially.
 
 We will use the ggplot2 package. 
 
