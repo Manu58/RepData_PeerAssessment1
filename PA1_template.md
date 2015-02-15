@@ -8,7 +8,7 @@ We will make use of the data.table and ggplot2 packages. Installable from CRAN.
 The date entry will be a factor but that is fine.
 
 ```r
-options(scipen = 1) # to beautify he mean and median output
+options(scipen = 1) # to beautify the mean and median output
 library("data.table")
 ```
 
@@ -158,7 +158,7 @@ We will use the ggplot2 package.
 library("ggplot2")
 g <- ggplot(subset(rawdat,!is.na(steps)), aes(minutes, steps))
 g <- g + stat_summary(fun.y = mean, geom = "line", colour = "blue") 
-g <- g + ggtitle("The aveage step density during a day")
+g <- g + ggtitle("The average step density during a day")
 g <- g + ylab("Step density (steps per min.)") + xlab("Time of the day")
 labtime <- function(x) {sprintf('%d:%02d', x %/% 60, x %% 60)}
 labdensity <- function(x) sprintf('%d', x/5)
