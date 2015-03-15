@@ -125,7 +125,7 @@ With the values rounded off in accordance wth an estimated error of 'r stderr' s
 
 We find a daily average of 10800 steps a day, which corresponds to $\sim 8$ km ($\sim 5$ miles) for an average person. 
 
-This happens to be accidentally (?) the "official" healthy target. 
+This happens to be accidentally (or maybe not) the "official" [healthy target](http://www.thewalkingsite.com/10000steps.html). 
 
 The median of 10800, being close to the mean, hints at a symmetric distribution. 
 
@@ -143,7 +143,7 @@ text(6000, 3*max(h$counts) / 4 + 0.5, "Mean daily steps")
 
 <img src="PA1_template_files/figure-html/unnamed-chunk-6-1.png" title="" alt="" style="display: block; margin: auto;" />
 
-The histogram reveals the distribution is far from symmetric, although there are two outliers that have a dazzling number of steps close to *zero*!
+The histogram reveals that the distribution is far from symmetric. There are two outliers that have a dazzling number of steps close to *zero*!
 
 The pedometer was hardly in use those days.
 
@@ -183,7 +183,7 @@ labtime(meanstep[mnstep == max(meanstep[,mnstep]), minutes])
 
 At 8:35. Perhaps we observe here a regular jogging time. Before we can model the data in order to 
 
-fill in the missing data we need some more information, There is perhaps a difference between weekdays and weekends.
+fill in the missing data we need some more information, There might be a difference between weekdays and weekends.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
@@ -233,9 +233,9 @@ later during the weekend. It is compensated though by a higher activity in the a
 
 It is, due to the limited sample size not possible to differentiate any further between days, but we can 
 
-extrapolate the observations to fill in the missing data.
+extrapolate the observations to impute the missing data.
 
-## Inputing missing values
+## Imputing missing values
 
 We use the average over the two month period for each 5 minute density, thereby differentiating between 
 
@@ -329,7 +329,7 @@ The mean has more or less stayed the same, the median though has decreased from 
 
 The reason is that most of the missing values were during the night where the activity is low. Using a mean approximation 
 
-for the missing values affects especially the median, this could be improved upon using bootstrapping. 
+for the missing values affects especially the median. A slightly better way to impute the data would have been bootstrapping. 
 
 Finally we can compare the daily steps histograms before and after filling in the missing data:
 
